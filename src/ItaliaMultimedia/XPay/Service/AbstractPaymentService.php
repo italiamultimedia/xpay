@@ -19,11 +19,11 @@ use function substr;
 
 abstract class AbstractPaymentService implements PaymentServiceInterface
 {
-    abstract protected function createCancelUrl(string $languageCode, string $orderId): string;
+    abstract protected function createCancelUrl(string $orderId): string;
 
-    abstract protected function createNotificationUrl(string $languageCode, string $orderId): string;
+    abstract protected function createNotificationUrl(string $orderId): string;
 
-    abstract protected function createReturnUrl(string $languageCode, string $orderId): string;
+    abstract protected function createReturnUrl(string $orderId): string;
 
     public function __construct(
         protected LoggerInterface $logger,
@@ -51,9 +51,9 @@ abstract class AbstractPaymentService implements PaymentServiceInterface
             'importo' => $orderTotalInCents,
             'languageId' => $this->getLanguageId($languageCode),
             'mac' => $this->generatePaymentRequestMac($codTrans, $orderTotalInCents),
-            'url' => $this->createReturnUrl($languageCode, $orderId),
-            'urlpost' => $this->createNotificationUrl($languageCode, $orderId),
-            'url_back' => $this->createCancelUrl($languageCode, $orderId),
+            'url' => $this->createReturnUrl($orderId),
+            'urlpost' => $this->createNotificationUrl($orderId),
+            'url_back' => $this->createCancelUrl($orderId),
         ];
     }
 
