@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItaliaMultimedia\XPay\Service;
 
+use ItaliaMultimedia\XPay\Contract\PaymentServiceInterface;
 use ItaliaMultimedia\XPay\Contract\RequestInputServiceInterface;
 use ItaliaMultimedia\XPay\DataTransfer\Configuration;
 use ItaliaMultimedia\XPay\DataTransfer\PaymentSystemSettings;
@@ -16,7 +17,7 @@ use function sha1;
 use function sprintf;
 use function substr;
 
-abstract class AbstractPaymentService
+abstract class AbstractPaymentService implements PaymentServiceInterface
 {
     abstract protected function createCancelUrl(string $languageCode, string $orderId): string;
 
@@ -56,17 +57,6 @@ abstract class AbstractPaymentService
         ];
     }
 
-    /**
-     * Generate `codTrans` based on orderId.
-     *
-     * MySQL equivalent: `SUBSTRING(SHA2(order_id, 256), 1, 30)`
-     */
-    public function generateCodTrans(string $orderId): string
-    {
-        // 30 is the maximum length accepted by Xpay.
-        return substr(hash('sha256', $orderId, false), 0, 30);
-    }
-
     public function getApiUrl(): string
     {
         return match ($this->paymentSystemSettings->environment) {
@@ -86,6 +76,17 @@ abstract class AbstractPaymentService
         }
 
         return true;
+    }
+
+    /**
+     * Generate `codTrans` based on orderId.
+     *
+     * MySQL equivalent: `SUBSTRING(SHA2(order_id, 256), 1, 30)`
+     */
+    protected function generateCodTrans(string $orderId): string
+    {
+        // 30 is the maximum length accepted by Xpay.
+        return substr(hash('sha256', $orderId, false), 0, 30);
     }
 
     private function generatePaymentRequestMac(string $codTrans, int $orderTotalInCents): string
