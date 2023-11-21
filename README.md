@@ -131,20 +131,15 @@ if ($processTransaction) {
 
 ```shell
 # Lint
-composer check:lint
-
+composer check:lint && \
 # Code style
-composer check:phpcs
-
+composer check:phpcs && \
 # PHPStan
-composer check:phpstan
-
+composer check:phpstan && \
 # Phan
-composer check:phan
-
+composer check:phan && \
 # PHPMD
-composer check:phpmd
-
+composer check:phpmd && \
 # Psalm
 composer check:psalm
 ```
