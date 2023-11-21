@@ -20,6 +20,8 @@ use function preg_match;
  */
 abstract class AbstractRequestInputService implements RequestInputServiceInterface
 {
+    public const REQUEST_INPUT_BLANKABLE_FIELDS = [RequestInput::COD_AUT];
+
     /**
      * @phpcs:disable SlevomatCodingStandard.TypeHints.DisallowMixedTypeHint.DisallowedMixedTypeHint
      * @param array<mixed> $parsedBody
@@ -36,6 +38,11 @@ abstract class AbstractRequestInputService implements RequestInputServiceInterfa
     public function getValidatedString(string $key): string
     {
         $value = $this->getStringFromAnySource($key);
+
+        // Some fields can be blank.
+        if (in_array($key, self::REQUEST_INPUT_BLANKABLE_FIELDS, true) && $value === '') {
+            return $value;
+        }
 
         $this->validateInput($key, $value);
 
