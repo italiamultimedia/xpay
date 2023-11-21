@@ -23,7 +23,7 @@
         "webservco"
     ],
     "license" : "MIT",
-    "name" : "webservco/component-skeleton",
+    "name" : "italiamultimedia/xpay",
     "require": {
         "php" : "^8.2"
     },
