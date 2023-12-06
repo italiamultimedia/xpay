@@ -13,6 +13,7 @@ use Psr\Log\LoggerInterface;
 use UnexpectedValueException;
 
 use function hash;
+use function microtime;
 use function sha1;
 use function sprintf;
 use function substr;
@@ -40,7 +41,7 @@ abstract class AbstractPaymentService implements PaymentServiceInterface
      */
     public function createPaymentRequestParameters(string $languageCode, string $orderId, float $orderTotal): array
     {
-        $codTrans = $this->generateCodTrans($orderId);
+        $codTrans = $this->generateCodTrans();
         $orderTotalInCents = (int) ($orderTotal * 100);
 
         return [
@@ -79,14 +80,12 @@ abstract class AbstractPaymentService implements PaymentServiceInterface
     }
 
     /**
-     * Generate `codTrans` based on orderId.
-     *
-     * MySQL equivalent: `SUBSTRING(SHA2(order_id, 256), 1, 30)`
+     * Generate `codTrans`.
      */
-    protected function generateCodTrans(string $orderId): string
+    protected function generateCodTrans(): string
     {
         // 30 is the maximum length accepted by Xpay.
-        return substr(hash('sha256', $orderId, false), 0, 30);
+        return substr(hash('sha256', microtime(), false), 0, 30);
     }
 
     private function generatePaymentRequestMac(string $codTrans, int $orderTotalInCents): string
