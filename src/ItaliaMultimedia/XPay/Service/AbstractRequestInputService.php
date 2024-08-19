@@ -6,21 +6,24 @@ namespace ItaliaMultimedia\XPay\Service;
 
 use ItaliaMultimedia\XPay\Contract\RequestInputServiceInterface;
 use ItaliaMultimedia\XPay\DataTransfer\Configuration;
-use ItaliaMultimedia\XPay\DataTransfer\Request\Esito;
+use ItaliaMultimedia\XPay\DataTransfer\PaymentSystemSettings;
 use ItaliaMultimedia\XPay\DataTransfer\Request\RequestInput;
+use ItaliaMultimedia\XPay\Enum\Esito;
 use OutOfBoundsException;
 use UnexpectedValueException;
 use WebServCo\Data\Contract\Extraction\DataExtractionContainerInterface;
 
 use function in_array;
 use function preg_match;
+use function sha1;
+use function sprintf;
 
 /**
  * Process request input into variables.
  */
 abstract class AbstractRequestInputService implements RequestInputServiceInterface
 {
-    public const REQUEST_INPUT_BLANKABLE_FIELDS = [RequestInput::COD_AUT];
+    public const array REQUEST_INPUT_BLANKABLE_FIELDS = [RequestInput::COD_AUT];
 
     /**
      * @phpcs:disable SlevomatCodingStandard.TypeHints.DisallowMixedTypeHint.DisallowedMixedTypeHint
@@ -31,6 +34,7 @@ abstract class AbstractRequestInputService implements RequestInputServiceInterfa
     public function __construct(
         private DataExtractionContainerInterface $dataExtractionContainer,
         private array $parsedBody,
+        protected PaymentSystemSettings $paymentSystemSettings,
         private array $queryParams,
     ) {
     }
@@ -49,6 +53,18 @@ abstract class AbstractRequestInputService implements RequestInputServiceInterfa
         return $value;
     }
 
+    public function validateInputMac(): bool
+    {
+        $calculatedMac = $this->getValidatedString(RequestInput::MAC);
+        $inputMac = $this->generatePaymentResponseMacFromRequestInput();
+
+        if ($calculatedMac !== $inputMac) {
+            throw new UnexpectedValueException('Invalid transaction data.');
+        }
+
+        return true;
+    }
+
     /**
      * @return non-empty-string
      */
@@ -61,6 +77,7 @@ abstract class AbstractRequestInputService implements RequestInputServiceInterfa
             RequestInput::IMPORTO => '/^[0-9]{3,8}$/',
             RequestInput::MAC => '/^[a-z0-9]{40}$/',
             RequestInput::ORARIO => '/^[0-9]{6}$/',
+            RequestInput::RECURRING_ID_INITIAL, RequestInput::RECURRING_ID_SUBSEQUENT => '/^[a-z0-9]{5,30}$/',
             default => throw new UnexpectedValueException('Unhandled key.'),
         };
     }
@@ -80,6 +97,23 @@ abstract class AbstractRequestInputService implements RequestInputServiceInterfa
         }
 
         return true;
+    }
+
+    private function generatePaymentResponseMacFromRequestInput(): string
+    {
+        return sha1(
+            sprintf(
+                'codTrans=%sesito=%simporto=%sdivisa=%sdata=%sorario=%scodAut=%s%s',
+                $this->getValidatedString(RequestInput::COD_TRANS),
+                $this->getValidatedString(RequestInput::ESITO),
+                $this->getValidatedString(RequestInput::IMPORTO),
+                $this->getValidatedString(RequestInput::DIVISA),
+                $this->getValidatedString(RequestInput::DATA),
+                $this->getValidatedString(RequestInput::ORARIO),
+                $this->getValidatedString(RequestInput::COD_AUT),
+                $this->paymentSystemSettings->macCalculationKey,
+            ),
+        );
     }
 
     /**
@@ -105,9 +139,14 @@ abstract class AbstractRequestInputService implements RequestInputServiceInterfa
         return true;
     }
 
+    /**
+     * @SuppressWarnings(PHPMD.StaticAccess)
+     * @todo check PHPMD warning (no other way to init Enum)
+     */
     private function validateEsito(string $value): bool
     {
-        if (!in_array($value, Esito::VALUES, true)) {
+        $esito = Esito::tryFrom($value);
+        if ($esito === null) {
             throw new UnexpectedValueException('Invalid data.');
         }
 

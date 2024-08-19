@@ -2,18 +2,24 @@
 
 An XPay (Nexi) implementation.
 
+Currently implemented functionality: 
+
+- [Pagamento semplice](https://ecommerce.nexi.it/specifiche-tecniche/codicebase.html)
+- [Pagamento ricorrente](https://ecommerce.nexi.it/specifiche-tecniche/pagamentoricorrente/introduzione.html)
+
 ---
 
-## Usage
+## Pagamento semplice
 
-Currently implemented functionality: [Pagamento semplice](https://ecommerce.nexi.it/specifiche-tecniche/codicebase.html)
+### Extend class `AbstractSimplePaymentService`
 
-### 1) Extend class `AbstractPaymentService`
-
-- implement `createCancelUrl`, `createNotificationUrl`, `createReturnUrl`;
+- implement `SimplePaymentServiceInterface`:
+  - `createCancelUrl`;
+  - `createNotificationUrl`;
+  - `createReturnUrl`;
 
 ```php
-final class PaymentService extends AbstractPaymentService implements PaymentServiceInterface
+final class SimplePaymentService extends AbstractSimplePaymentService implements SimplePaymentServiceInterface
 {
     protected function createCancelUrl(string $orderId): string
     {
@@ -32,7 +38,7 @@ final class PaymentService extends AbstractPaymentService implements PaymentServ
 }
 ```
 
-### 2) Extend class `AbstractRequestInputService`
+### Extend class `AbstractRequestInputService`
 
 - optionally implement your own validation rules;
 
@@ -59,21 +65,30 @@ final class RequestInputService extends AbstractRequestInputService implements R
 
         return parent::validateInput($key, $value);
     }
+    
+    private function validateLanguageCode(string $value): bool
+    {
+        if (!in_array($value, ['en', 'it'], true)) {
+            throw new UnexpectedValueException('Invalid data.');
+        }
+
+        return true;
+    }
 }
 ```
 
-### 4) Payment request
+### Payment request
 
 - [Avvio pagamento](https://ecommerce.nexi.it/specifiche-tecniche/codicebase.html)
 
-```html
+```php
 <!doctype html>
 <html>
     <head>
         ...
     </head>
     <body>
-        <form id="payment_form" method="POST" action="<?=$paymentService->getApiUrl()?>">
+        <form id="payment_form" method="POST" action="<?=$paymentService->getSimplePaymentStartUrl()?>">
             <?php
             foreach (
                 $paymentService->createPaymentRequestParameters(
@@ -95,7 +110,7 @@ final class RequestInputService extends AbstractRequestInputService implements R
 </html>
 ```
 
-### 5) Return page
+### Return page
 
 ```php
 // Validate order (get info from storage)
@@ -117,7 +132,7 @@ try {
 
 if ($processTransaction) {
     // Validate transaction. Uses input data (_GET or _POST).
-    $paymentService->validateTransaction();
+    $requestInputService->validateInputMac();
 
     // Store transaction result.
     ...
@@ -126,6 +141,88 @@ if ($processTransaction) {
 // Redirect back to website.
 ...
 ```
+
+---
+
+## Pagamento ricorrente
+
+### Extend class `AbstractRecurringPaymentService`
+
+- implement `RecurringPaymentServiceInterface`:
+    - `createCancelUrl`;
+    - `createNotificationUrl`;
+      - `createReturnUrl`;  
+
+```php
+final class RecurringPaymentService extends AbstractRecurringPaymentService implements RecurringPaymentServiceInterface
+{
+    protected function createCancelUrl(string $orderId): string
+    {
+        ...
+    }
+
+    protected function createNotificationUrl(string $orderId): string
+    {
+        ...
+    }
+
+    protected function createReturnUrl(string $orderId): string
+    {
+        ...
+    }
+}
+```
+
+### Extend class `AbstractRequestInputService`
+
+- optionally implement your own validation rules;
+- see the same section in "Pagamento semplice"
+
+### First payment: Payment request
+
+- [Primo pagamento](https://ecommerce.nexi.it/specifiche-tecniche/pagamentoricorrente/primopagamento.html)
+
+```php
+<!doctype html>
+<html>
+    <head>
+        ...
+    </head>
+    <body>
+        <form id="payment_form" method="POST" action="<?=$paymentService->getRecurringPaymentInitialUrl()?>">
+            <?php
+            foreach (
+                $paymentService->createInitialPaymentRequestParameters(
+                    $languageCode,
+                    $numContratto,
+                    $orderInformation->total,
+                ) as $key => $value
+            ) { ?>
+                <input type="hidden" name="<?=$key?>" value="<?=$value?>" />
+            <?php } ?>
+            <button type="submit" class="btn btn-primary">
+                <?=$languageCode === 'it' ? 'Acquista ora' : 'Buy now'?>
+            </button>
+        </form>
+        <script>
+            document.getElementById('payment_form').submit();
+        </script>
+    </body>
+</html>
+```
+
+### First payment: Return page
+
+- see the same section in "Pagamento semplice"
+
+
+### Subsequent payments
+
+- [Pagamenti successivi](https://ecommerce.nexi.it/specifiche-tecniche/pagamentoricorrente/pagamentisuccessivi.html)
+
+Use `SubsequentPaymentService`, method `executeSubsequentPayment(string $numeroContratto, float $orderTotal): Esito`.
+
+---
 
 ## Development
 

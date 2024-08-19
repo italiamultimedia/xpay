@@ -27,6 +27,9 @@
     "name" : "italiamultimedia/xpay",
     "require": {
         "php" : "^8.3",
+        "fig/http-message-util": "^1",
+        "psr/http-client": "^1.0",
+        "psr/http-factory": "^1",
         "psr/log": "^3",
         "webservco/data": "^0"
     },

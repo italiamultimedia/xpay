@@ -7,4 +7,6 @@ namespace ItaliaMultimedia\XPay\Contract;
 interface RequestInputServiceInterface
 {
     public function getValidatedString(string $key): string;
+
+    public function validateInputMac(): bool;
 }

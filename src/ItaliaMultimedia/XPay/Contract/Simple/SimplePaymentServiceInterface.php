@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ItaliaMultimedia\XPay\Contract;
+namespace ItaliaMultimedia\XPay\Contract\Simple;
 
-interface PaymentServiceInterface
+interface SimplePaymentServiceInterface
 {
     /**
      * Create request parameters to use for the initial payment request.
@@ -14,7 +14,5 @@ interface PaymentServiceInterface
      */
     public function createPaymentRequestParameters(string $languageCode, string $orderId, float $orderTotal): array;
 
-    public function getApiUrl(): string;
-
-    public function validateTransaction(): bool;
+    public function getSimplePaymentStartUrl(): string;
 }

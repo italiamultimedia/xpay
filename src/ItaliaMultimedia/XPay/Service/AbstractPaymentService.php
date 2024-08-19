@@ -4,12 +4,8 @@ declare(strict_types=1);
 
 namespace ItaliaMultimedia\XPay\Service;
 
-use ItaliaMultimedia\XPay\Contract\PaymentServiceInterface;
-use ItaliaMultimedia\XPay\Contract\RequestInputServiceInterface;
 use ItaliaMultimedia\XPay\DataTransfer\Configuration;
 use ItaliaMultimedia\XPay\DataTransfer\PaymentSystemSettings;
-use ItaliaMultimedia\XPay\DataTransfer\Request\RequestInput;
-use Psr\Log\LoggerInterface;
 use UnexpectedValueException;
 
 use function hash;
@@ -18,7 +14,7 @@ use function sha1;
 use function sprintf;
 use function substr;
 
-abstract class AbstractPaymentService implements PaymentServiceInterface
+abstract class AbstractPaymentService
 {
     abstract protected function createCancelUrl(string $orderId): string;
 
@@ -26,11 +22,8 @@ abstract class AbstractPaymentService implements PaymentServiceInterface
 
     abstract protected function createReturnUrl(string $orderId): string;
 
-    public function __construct(
-        protected LoggerInterface $logger,
-        protected PaymentSystemSettings $paymentSystemSettings,
-        protected RequestInputServiceInterface $requestInputService,
-    ) {
+    public function __construct(protected PaymentSystemSettings $paymentSystemSettings,)
+    {
     }
 
     /**
@@ -58,27 +51,6 @@ abstract class AbstractPaymentService implements PaymentServiceInterface
         ];
     }
 
-    public function getApiUrl(): string
-    {
-        return match ($this->paymentSystemSettings->environment) {
-            Configuration::ENVIRONMENT_TEST => Configuration::API_URL_TEST,
-            Configuration::ENVIRONMENT_PRODUCTION => Configuration::API_URL_PRODUCTION,
-            default => throw new UnexpectedValueException('Unhandled environment.'),
-        };
-    }
-
-    public function validateTransaction(): bool
-    {
-        $calculatedMac = $this->requestInputService->getValidatedString(RequestInput::MAC);
-        $inputMac = $this->generatePaymentResponseMacFromRequestInput();
-
-        if ($calculatedMac !== $inputMac) {
-            throw new UnexpectedValueException('Invalid transaction data.');
-        }
-
-        return true;
-    }
-
     /**
      * Generate `codTrans`.
      */
@@ -86,6 +58,15 @@ abstract class AbstractPaymentService implements PaymentServiceInterface
     {
         // 30 is the maximum length accepted by Xpay.
         return substr(hash('sha256', microtime(), false), 0, 30);
+    }
+
+    protected function getApiBaseUrl(): string
+    {
+        return match ($this->paymentSystemSettings->environment) {
+            Configuration::ENVIRONMENT_TEST => Configuration::API_URL_TEST,
+            Configuration::ENVIRONMENT_PRODUCTION => Configuration::API_URL_PRODUCTION,
+            default => throw new UnexpectedValueException('Unhandled environment.'),
+        };
     }
 
     private function generatePaymentRequestMac(string $codTrans, int $orderTotalInCents): string
@@ -96,23 +77,6 @@ abstract class AbstractPaymentService implements PaymentServiceInterface
                 $codTrans,
                 Configuration::CURRENCY,
                 $orderTotalInCents,
-                $this->paymentSystemSettings->macCalculationKey,
-            ),
-        );
-    }
-
-    private function generatePaymentResponseMacFromRequestInput(): string
-    {
-        return sha1(
-            sprintf(
-                'codTrans=%sesito=%simporto=%sdivisa=%sdata=%sorario=%scodAut=%s%s',
-                $this->requestInputService->getValidatedString(RequestInput::COD_TRANS),
-                $this->requestInputService->getValidatedString(RequestInput::ESITO),
-                $this->requestInputService->getValidatedString(RequestInput::IMPORTO),
-                $this->requestInputService->getValidatedString(RequestInput::DIVISA),
-                $this->requestInputService->getValidatedString(RequestInput::DATA),
-                $this->requestInputService->getValidatedString(RequestInput::ORARIO),
-                $this->requestInputService->getValidatedString(RequestInput::COD_AUT),
                 $this->paymentSystemSettings->macCalculationKey,
             ),
         );
