@@ -12,6 +12,9 @@ use function date;
 use function sha1;
 use function sprintf;
 
+/**
+ * Abstract class to be extended by consumer implementations.
+ */
 abstract class AbstractRecurringPaymentService extends AbstractPaymentService implements
     RecurringPaymentServiceInterface
 {
@@ -48,9 +51,12 @@ abstract class AbstractRecurringPaymentService extends AbstractPaymentService im
      *
      * @return array<string,int|string>
      */
-    public function createSubsequentPaymentRequestParameters(string $numeroContratto, float $orderTotal): array
-    {
-        // Can not use createPaymentRequestParameters because the filed names are different.
+    public function createSubsequentPaymentRequestParameters(
+        string $numeroContratto,
+        float $orderTotal,
+        string $scadenza,
+    ): array {
+        // Can not use createPaymentRequestParameters because the field names are different.
 
         $codTrans = $this->generateCodTrans();
         $orderTotalInCents = (int) ($orderTotal * 100);
@@ -71,10 +77,15 @@ abstract class AbstractRecurringPaymentService extends AbstractPaymentService im
                 $codTrans,
                 $numeroContratto,
                 $orderTotalInCents,
+                $scadenza,
                 $timeStamp,
             ),
             // "Codice che consente a Nexi di salvare l'abbinamento tra l'utente e la carta di pagamento utilizzata"
             'numeroContratto' => $numeroContratto,
+            // "Scadenza carta di credito.
+            // Valorizzare il seguente parametro se si vuole aggiornare la data di scadenza della carta di credito,
+            // altrimenti non valorizzarlo."
+            'scadenza' => $scadenza,
             // "Timestamp in formato millisecondi "
             'timeStamp' => $timeStamp,
         ];
@@ -103,16 +114,18 @@ abstract class AbstractRecurringPaymentService extends AbstractPaymentService im
         string $codiceTransazione,
         string $numeroContratto,
         int $orderTotalInCents,
+        string $scadenza,
         string $timeStamp,
     ): string {
         return sha1(
             sprintf(
-                'apiKey=%snumeroContratto=%scodiceTransazione=%simporto=%ddivisa=%dtimeStamp=%s%s',
+                'apiKey=%snumeroContratto=%scodiceTransazione=%simporto=%ddivisa=%dscadenza=%stimeStamp=%s%s',
                 $this->paymentSystemSettings->alias,
                 $numeroContratto,
                 $codiceTransazione,
                 $orderTotalInCents,
                 Configuration::CURRENCY_CODE,
+                $scadenza,
                 $timeStamp,
                 $this->paymentSystemSettings->macCalculationKey,
             ),

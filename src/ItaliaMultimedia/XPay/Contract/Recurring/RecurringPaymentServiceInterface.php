@@ -24,7 +24,11 @@ interface RecurringPaymentServiceInterface
      *
      * @return array<string,int|string>
      */
-    public function createSubsequentPaymentRequestParameters(string $numeroContratto, float $orderTotal,): array;
+    public function createSubsequentPaymentRequestParameters(
+        string $numeroContratto,
+        float $orderTotal,
+        string $scadenza,
+    ): array;
 
     public function getRecurringPaymentInitialUrl(): string;
 

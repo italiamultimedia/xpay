@@ -220,7 +220,9 @@ final class RecurringPaymentService extends AbstractRecurringPaymentService impl
 
 - [Pagamenti successivi](https://ecommerce.nexi.it/specifiche-tecniche/pagamentoricorrente/pagamentisuccessivi.html)
 
-Use `SubsequentPaymentService`, method `executeSubsequentPayment(string $numeroContratto, float $orderTotal): Esito`.
+- Use `SubsequentPaymentService`, method `executeSubsequentPayment(string $numeroContratto, float $orderTotal, string $scadenza): AbstractResponseData`.
+- Can also use `SubsequentPaymentService`.`getResponse`, returns `Psr\Http\Message\ResponseInterface` if run after `executeSubsequentPayment`, null otherwise. 
+- Check if the result is `PositiveResponseData` or `NegativeResponseData` and act accordingly.
 
 ---
 

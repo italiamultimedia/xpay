@@ -7,7 +7,7 @@ namespace ItaliaMultimedia\XPay\Service\Recurring;
 use Fig\Http\Message\RequestMethodInterface;
 use ItaliaMultimedia\XPay\Contract\Recurring\RecurringPaymentServiceInterface;
 use ItaliaMultimedia\XPay\DataTransfer\PaymentSystemSettings;
-use ItaliaMultimedia\XPay\DataTransfer\Response\Recurring\Subsequent\ResponseData;
+use ItaliaMultimedia\XPay\DataTransfer\Response\Recurring\Subsequent\AbstractResponseData;
 use ItaliaMultimedia\XPay\Enum\Esito;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
@@ -31,44 +31,53 @@ use const JSON_THROW_ON_ERROR;
  *
  * Executes a subsequent payment using XPay API.
  */
-final class SubsequentPaymentService
+final class SubsequentPaymentService extends AbstractSubsequentPaymentService
 {
+    private ?ResponseInterface $response;
+
     public function __construct(
         private ClientInterface $httpClient,
-        private DataExtractionContainerInterface $dataExtractionContainer,
+        DataExtractionContainerInterface $dataExtractionContainer,
         private PaymentSystemSettings $paymentSystemSettings,
         private RecurringPaymentServiceInterface $paymentService,
         private RequestFactoryInterface $requestFactory,
         private StreamFactoryInterface $streamFactory,
     ) {
+        parent::__construct($dataExtractionContainer);
     }
 
-    public function executeSubsequentPayment(string $numeroContratto, float $orderTotal): Esito
-    {
-        $request = $this->createRequest($numeroContratto, $orderTotal);
+    public function executeSubsequentPayment(
+        string $numeroContratto,
+        float $orderTotal,
+        string $scadenza,
+    ): AbstractResponseData {
+        $request = $this->createRequest($numeroContratto, $orderTotal, $scadenza);
 
-        $response = $this->getResponse($request);
+        $this->response = $this->executeRequest($request);
 
-        $this->validateResponseStatusCode($response);
+        $this->validateResponseStatusCode($this->response);
 
-        $responseBodyAsArray = $this->getResponseBodyAsArray($response);
+        $responseBodyAsArray = $this->getResponseBodyAsArray($this->response);
 
-        $responseData = $this->getResponseData($responseBodyAsArray);
-
-        $this->validateResponseData($responseBodyAsArray, $responseData);
+        $responseData = $this->getCompleteResponseData($responseBodyAsArray);
 
         $macCalculated = $this->generatePaymentResponseMacFromRequestInputRecurringSubsequent(
-            $responseData->esito,
-            $responseData->idOperazione,
-            $responseData->timeStamp,
+            $responseData->baseResponseData->esito,
+            $responseData->baseResponseData->idOperazione,
+            $responseData->baseResponseData->timeStamp,
         );
 
         // Validate mac
-        if ($responseData->mac !== $macCalculated) {
+        if ($responseData->baseResponseData->mac !== $macCalculated) {
             throw new UnexpectedValueException('Invalid transaction data.');
         }
 
-        return $this->getValidatedEsito($responseData->esito);
+        return $responseData;
+    }
+
+    public function getResponse(): ?ResponseInterface
+    {
+        return $this->response;
     }
 
     /**
@@ -78,7 +87,7 @@ final class SubsequentPaymentService
      * @suppress PhanPossiblyFalseTypeArgument
      * @suppress PhanPossiblyFalseTypeArgumentInternal
      */
-    private function createRequest(string $numeroContratto, float $orderTotal): RequestInterface
+    private function createRequest(string $numeroContratto, float $orderTotal, string $scadenza): RequestInterface
     {
         $request = $this->requestFactory->createRequest(
             RequestMethodInterface::METHOD_POST,
@@ -88,6 +97,7 @@ final class SubsequentPaymentService
         $requestParameters = $this->paymentService->createSubsequentPaymentRequestParameters(
             $numeroContratto,
             $orderTotal,
+            $scadenza,
         );
         $requestBody = json_encode($requestParameters, JSON_THROW_ON_ERROR);
 
@@ -103,25 +113,25 @@ final class SubsequentPaymentService
         return $request;
     }
 
+    private function executeRequest(RequestInterface $request): ResponseInterface
+    {
+        return $this->httpClient->sendRequest($request);
+    }
+
     private function generatePaymentResponseMacFromRequestInputRecurringSubsequent(
-        string $esito,
+        Esito $esito,
         string $idOperazione,
         string $timeStamp,
     ): string {
         return sha1(
             sprintf(
                 'esito=%sidOperazione=%stimeStamp=%s%s',
-                $esito,
+                $esito->value,
                 $idOperazione,
                 $timeStamp,
                 $this->paymentSystemSettings->macCalculationKey,
             ),
         );
-    }
-
-    private function getResponse(RequestInterface $request): ResponseInterface
-    {
-        return $this->httpClient->sendRequest($request);
     }
 
     /**
@@ -142,58 +152,6 @@ final class SubsequentPaymentService
         }
 
         return $array;
-    }
-
-    /**
-     * @phpcs:ignore SlevomatCodingStandard.TypeHints.DisallowMixedTypeHint.DisallowedMixedTypeHint
-     * @param array<mixed> $responseBodyAsArray
-     */
-    private function getResponseData(array $responseBodyAsArray): ResponseData
-    {
-        return new ResponseData(
-            $this->dataExtractionContainer->getLooseArrayNonEmptyDataExtractionService()
-                ->getNonEmptyString($responseBodyAsArray, 'esito'),
-            $this->dataExtractionContainer->getLooseArrayDataExtractionService()
-                ->getString($responseBodyAsArray, 'idOperazione'),
-            $this->dataExtractionContainer->getLooseArrayDataExtractionService()
-                ->getString($responseBodyAsArray, 'mac'),
-            $this->dataExtractionContainer->getLooseArrayNonEmptyDataExtractionService()
-                ->getNonEmptyString($responseBodyAsArray, 'timeStamp'),
-        );
-    }
-
-    /**
-     * @SuppressWarnings(PHPMD.StaticAccess)
-     * @todo check PHPMD warning (no other way to init Enum)
-     */
-    private function getValidatedEsito(string $esito): Esito
-    {
-        // Validate esito
-        $enum = Esito::tryFrom($esito);
-        if ($enum === null) {
-            throw new UnexpectedValueException('Invalid transaction data.');
-        }
-
-        return $enum;
-    }
-
-    /**
-     * @phpcs:ignore SlevomatCodingStandard.TypeHints.DisallowMixedTypeHint.DisallowedMixedTypeHint
-     * @param array<mixed> $responseBodyAsArray
-     */
-    private function validateResponseData(array $responseBodyAsArray, ResponseData $responseData): bool
-    {
-        if ($responseData->esito !== 'OK' || $responseData->idOperazione === '' || $responseData->mac === '') {
-            // Response contains errors. Try to get more information.
-            throw new UnexpectedValueException(
-                $this->dataExtractionContainer->getLooseArrayNonEmptyDataExtractionService()
-                    ->getNonEmptyString($responseBodyAsArray, 'errore/messaggio', 'Unknown XPay error.'),
-                $this->dataExtractionContainer->getLooseArrayNonEmptyDataExtractionService()
-                    ->getNonEmptyInt($responseBodyAsArray, 'errore/codice', 500),
-            );
-        }
-
-        return true;
     }
 
     private function validateResponseStatusCode(ResponseInterface $response): bool

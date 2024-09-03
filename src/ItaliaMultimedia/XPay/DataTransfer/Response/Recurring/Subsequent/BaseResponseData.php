@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace ItaliaMultimedia\XPay\DataTransfer\Response\Recurring\Subsequent;
 
-final readonly class ResponseData
+use ItaliaMultimedia\XPay\Enum\Esito;
+
+final readonly class BaseResponseData
 {
     public function __construct(
         // 'OK', 'KO'.
-        public string $esito,
+        public Esito $esito,
         // Empty on error. `string(0) ""`
         public string $idOperazione,
         // Empty string on error. `string(1) " "`
