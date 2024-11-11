@@ -71,7 +71,7 @@ abstract class AbstractRequestInputService implements RequestInputServiceInterfa
     protected function getValidationRule(string $key): string
     {
         return match ($key) {
-            RequestInput::COD_AUT => '/^[A-Z0-9]{2,6}$/',
+            RequestInput::COD_AUT => '/^[a-zA-Z0-9]{2,6}$/',
             RequestInput::COD_TRANS => '/^[a-z0-9]{2,30}$/',
             RequestInput::DATA => '/^[0-9]{8}$/',
             RequestInput::IMPORTO => '/^[0-9]{3,8}$/',
