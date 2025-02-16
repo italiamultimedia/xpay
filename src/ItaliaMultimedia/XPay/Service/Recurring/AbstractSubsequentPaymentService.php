@@ -126,7 +126,7 @@ abstract class AbstractSubsequentPaymentService
     }
 
     /**
-     * @SuppressWarnings(PHPMD.StaticAccess)
+     * @SuppressWarnings("PHPMD.StaticAccess")
      * @todo check PHPMD warning (no other way to init Enum)
      */
     private function getValidatedEsito(string $esito): Esito
