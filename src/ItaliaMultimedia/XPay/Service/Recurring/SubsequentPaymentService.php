@@ -33,7 +33,7 @@ use const JSON_THROW_ON_ERROR;
  */
 final class SubsequentPaymentService extends AbstractSubsequentPaymentService
 {
-    private ?ResponseInterface $response;
+    private ?ResponseInterface $response = null;
 
     public function __construct(
         private ClientInterface $httpClient,
