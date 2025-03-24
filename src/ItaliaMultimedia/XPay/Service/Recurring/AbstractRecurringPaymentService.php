@@ -7,6 +7,7 @@ namespace ItaliaMultimedia\XPay\Service\Recurring;
 use ItaliaMultimedia\XPay\Contract\Recurring\RecurringPaymentServiceInterface;
 use ItaliaMultimedia\XPay\DataTransfer\Configuration;
 use ItaliaMultimedia\XPay\Service\AbstractPaymentService;
+use Override;
 
 use function date;
 use function sha1;
@@ -14,6 +15,13 @@ use function sprintf;
 
 /**
  * Abstract class to be extended by consumer implementations.
+ * 'psalm: "Class ItaliaMultimedia\XPay\Service\Recurring\AbstractRecurringPaymentService'
+ * 'may not inherit from final class ItaliaMultimedia\XPay\Service\AbstractPaymentService"'
+ * 'psalm: "Non-readonly class ItaliaMultimedia\XPay\Service\Recurring\AbstractRecurringPaymentService'
+ * 'may not inherit from readonly class ItaliaMultimedia\XPay\Service\AbstractPaymentService"'
+ * However AbstractPaymentService is neither readonly nor final.
+ *
+ * @psalm-suppress InvalidExtendClass
  */
 abstract class AbstractRecurringPaymentService extends AbstractPaymentService implements
     RecurringPaymentServiceInterface
@@ -24,6 +32,7 @@ abstract class AbstractRecurringPaymentService extends AbstractPaymentService im
      *
      * @return array<string,int|string>
      */
+    #[Override]
     public function createInitialPaymentRequestParameters(
         string $languageCode,
         string $numContratto,
@@ -51,6 +60,7 @@ abstract class AbstractRecurringPaymentService extends AbstractPaymentService im
      *
      * @return array<string,int|string>
      */
+    #[Override]
     public function createSubsequentPaymentRequestParameters(
         string $numeroContratto,
         float $orderTotal,
@@ -59,7 +69,7 @@ abstract class AbstractRecurringPaymentService extends AbstractPaymentService im
         // Can not use createPaymentRequestParameters because the field names are different.
 
         $codTrans = $this->generateCodTrans();
-        $orderTotalInCents = (int) ($orderTotal * 100);
+        $orderTotalInCents = (int) ($orderTotal * 100.00);
         $timeStamp = date('Uv');
 
         return [
@@ -91,6 +101,7 @@ abstract class AbstractRecurringPaymentService extends AbstractPaymentService im
         ];
     }
 
+    #[Override]
     public function getRecurringPaymentInitialUrl(): string
     {
         return sprintf(
@@ -101,6 +112,7 @@ abstract class AbstractRecurringPaymentService extends AbstractPaymentService im
         );
     }
 
+    #[Override]
     public function getRecurringPaymentSubsequentUrl(): string
     {
         return sprintf(

@@ -10,6 +10,7 @@ use ItaliaMultimedia\XPay\DataTransfer\PaymentSystemSettings;
 use ItaliaMultimedia\XPay\DataTransfer\Request\RequestInput;
 use ItaliaMultimedia\XPay\Enum\Esito;
 use OutOfBoundsException;
+use Override;
 use UnexpectedValueException;
 use WebServCo\Data\Contract\Extraction\DataExtractionContainerInterface;
 
@@ -39,6 +40,7 @@ abstract class AbstractRequestInputService implements RequestInputServiceInterfa
     ) {
     }
 
+    #[Override]
     public function getValidatedString(string $key): string
     {
         $value = $this->getStringFromAnySource($key);
@@ -53,6 +55,7 @@ abstract class AbstractRequestInputService implements RequestInputServiceInterfa
         return $value;
     }
 
+    #[Override]
     public function validateInputMac(): bool
     {
         $calculatedMac = $this->getValidatedString(RequestInput::MAC);

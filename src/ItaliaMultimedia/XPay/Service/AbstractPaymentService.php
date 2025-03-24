@@ -14,6 +14,14 @@ use function sha1;
 use function sprintf;
 use function substr;
 
+/**
+ * 'psalm: "Method createnotificationurl is not defined on class'
+ *  'ItaliaMultimedia\XPay\Service\AbstractPaymentService,'
+ *  'defined abstract in ItaliaMultimedia\XPay\Service\AbstractPaymentService"'
+ *  WTF psalm
+ *
+ * @psalm-suppress UnimplementedAbstractMethod
+ */
 abstract class AbstractPaymentService
 {
     abstract protected function createCancelUrl(string $orderId): string;
@@ -35,7 +43,7 @@ abstract class AbstractPaymentService
     public function createPaymentRequestParameters(string $languageCode, string $orderId, float $orderTotal): array
     {
         $codTrans = $this->generateCodTrans();
-        $orderTotalInCents = (int) ($orderTotal * 100);
+        $orderTotalInCents = (int) ($orderTotal * 100.00);
 
         return [
             'alias' => $this->paymentSystemSettings->alias,
