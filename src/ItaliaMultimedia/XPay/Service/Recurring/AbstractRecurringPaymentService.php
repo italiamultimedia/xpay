@@ -13,16 +13,6 @@ use function date;
 use function sha1;
 use function sprintf;
 
-/**
- * Abstract class to be extended by consumer implementations.
- * 'psalm: "Class ItaliaMultimedia\XPay\Service\Recurring\AbstractRecurringPaymentService'
- * 'may not inherit from final class ItaliaMultimedia\XPay\Service\AbstractPaymentService"'
- * 'psalm: "Non-readonly class ItaliaMultimedia\XPay\Service\Recurring\AbstractRecurringPaymentService'
- * 'may not inherit from readonly class ItaliaMultimedia\XPay\Service\AbstractPaymentService"'
- * However AbstractPaymentService is neither readonly nor final.
- *
- * @psalm-suppress InvalidExtendClass
- */
 abstract class AbstractRecurringPaymentService extends AbstractPaymentService implements
     RecurringPaymentServiceInterface
 {

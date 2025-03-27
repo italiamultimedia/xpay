@@ -14,14 +14,6 @@ use function sha1;
 use function sprintf;
 use function substr;
 
-/**
- * 'psalm: "Method createnotificationurl is not defined on class'
- *  'ItaliaMultimedia\XPay\Service\AbstractPaymentService,'
- *  'defined abstract in ItaliaMultimedia\XPay\Service\AbstractPaymentService"'
- *  WTF psalm
- *
- * @psalm-suppress UnimplementedAbstractMethod
- */
 abstract class AbstractPaymentService
 {
     abstract protected function createCancelUrl(string $orderId): string;
