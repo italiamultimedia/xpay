@@ -84,8 +84,6 @@ abstract class AbstractSubsequentPaymentService
             $this->dataExtractionContainer->getLooseArrayNonEmptyDataExtractionService()
                 ->getNonEmptyString($responseBodyAsArray, 'ora'),
             $this->dataExtractionContainer->getLooseArrayNonEmptyDataExtractionService()
-                ->getNonEmptyString($responseBodyAsArray, 'nazione'),
-            $this->dataExtractionContainer->getLooseArrayNonEmptyDataExtractionService()
                 ->getNonEmptyString($responseBodyAsArray, 'codiceConvenzione'),
             $this->dataExtractionContainer->getLooseArrayNonEmptyDataExtractionService()
                 ->getNonEmptyString($responseBodyAsArray, 'brand'),
@@ -95,12 +93,24 @@ abstract class AbstractSubsequentPaymentService
     }
 
     /**
+     * Builds optional response data for a successful subsequent payment.
+     *
+     * NOTE:
+     * `nazione` is documented as mandatory by Nexi, but has been observed
+     * as an empty string in subsequent payment responses when using
+     * Nexi test cards.
+     *
+     * @see https://ecommerce.nexi.it/specifiche-tecniche/pagamentoricorrente/pagamentisuccessivi.html#tabella-parametri-anchor-259
+     * @since 2026-01-26
+     *
      * @phpcs:ignore SlevomatCodingStandard.TypeHints.DisallowMixedTypeHint.DisallowedMixedTypeHint
      * @param array<mixed> $responseBodyAsArray
      */
     private function getPositiveOptionalResponseData(array $responseBodyAsArray): Optional
     {
         return new Optional(
+            $this->dataExtractionContainer->getLooseArrayDataExtractionService()
+                ->getString($responseBodyAsArray, 'nazione'),
             $this->dataExtractionContainer->getLooseArrayDataExtractionService()
                 ->getString($responseBodyAsArray, 'regione'),
             $this->dataExtractionContainer->getLooseArrayDataExtractionService()
