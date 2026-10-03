@@ -80,13 +80,6 @@ final class SubsequentPaymentService extends AbstractSubsequentPaymentService
         return $this->response;
     }
 
-    /**
-     * json_encode: Despite using JSON_THROW_ON_ERROR flag, Phan 5.4.1 throws PhanPossiblyFalseTypeArgument.
-     * If adding is_string check, PHPStan and Psalm instead throw error.
-     *
-     * @suppress PhanPossiblyFalseTypeArgument
-     * @suppress PhanPossiblyFalseTypeArgumentInternal
-     */
     private function createRequest(string $numeroContratto, float $orderTotal, string $scadenza): RequestInterface
     {
         $request = $this->requestFactory->createRequest(
