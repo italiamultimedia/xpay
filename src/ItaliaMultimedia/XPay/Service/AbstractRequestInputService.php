@@ -142,10 +142,6 @@ abstract class AbstractRequestInputService implements RequestInputServiceInterfa
         return true;
     }
 
-    /**
-     * @SuppressWarnings("PHPMD.StaticAccess")
-     * @todo check PHPMD warning (no other way to init Enum)
-     */
     private function validateEsito(string $value): bool
     {
         $esito = Esito::tryFrom($value);
