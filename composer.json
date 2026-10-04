@@ -31,7 +31,7 @@
         "psr/http-client": "^1.0",
         "psr/http-factory": "^1",
         "psr/log": "^3",
-        "webservco/data": "^1"
+        "webservco/data": "^2"
     },
     "require-dev": {
         "pds/skeleton": "^1",
